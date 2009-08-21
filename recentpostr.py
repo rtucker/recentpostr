@@ -28,6 +28,7 @@ displaymax = 4
 
 import feedparser
 import logging
+import logging.handlers
 import operator
 import robotparser
 import sqlite3
@@ -35,7 +36,11 @@ import sys
 import time
 import urllib
 
-# Ser user agent for feedparser
+# Set up logging to syslog
+logging.getLogger('').addHandler(logging.handlers.SysLogHandler('/dev/log'))
+logging.getLogger('').setLevel(logging.DEBUG)
+
+# Set user agent for feedparser
 feedparser.USER_AGENT = 'recentpostr/0.1 +http://blog.hoopycat.com/'
 
 # Set user agent for urllib
@@ -71,13 +76,16 @@ def checkRobotOK(url):
 
     try:
         if robotsfd.code != 200:
+            logging.debug('robots.txt not found for %s, assuming OK' % url)
             return True
     except AttributeError:
         pass
 
     rp.parse(robotsfd.readlines())
 
-    return rp.can_fetch(feedparser.USER_AGENT, url)
+    result = rp.can_fetch(feedparser.USER_AGENT, url)
+    logging.debug('robots.txt for %s says %s' % (url, str(result)))
+    return result
 
 def getURLBase(url):
     host = urllib.splithost(urllib.splittype(url)[1])[0]
@@ -126,6 +134,7 @@ def updateBlogList(db, bloglist, checkevery=30*60):
     allrows = c.fetchall()
     for i in bloglist:
         if (i, ) not in allrows:
+            logging.debug('New blog found: %s' % i)
             c.execute("insert into blogcache values(?,'','','','',1,1,'',1)", (i,))
 
     lastcheckthreshold = int(time.time()-checkevery)
@@ -197,6 +206,7 @@ def formatOutputRowJavaScript(entry):
 
 def __main__():
     db = initDB()
+    logging.debug('Updating blog list...')
     updateBlogList(db, bloglist)
     element = iterCachedBlogRoll(db, bloglist)
     for i in range(0,displaymax):
