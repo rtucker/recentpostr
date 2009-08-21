@@ -150,9 +150,9 @@ def formatOutputRowJavaScript(entry):
         entry['isostamp'] = time.strftime("%Y-%m-%dT%H:%M:%S",
                                           time.gmtime(entry['postts']))
     return """
-        document.write("<li><a href='%(blogurl)s'>%(blogtitle)s</a><br><small><a href='%(postlink)s'>%(posttitle)s</a><br><p align=right><i>");
-            jQuery.timeago("%(isostamp)s");
-        document.write("</i></p></small></li>");""" % entry
+        document.write("<li><a href='%(blogurl)s'>%(blogtitle)s</a><br><small><a href='%(postlink)s'>%(posttitle)s<p align=right><i>");
+        document.write(jQuery.timeago("%(isostamp)s"));
+        document.write("</i></p></a></small></li>");""" % entry
 
 def __main__():
     db = initDB()
