@@ -10,6 +10,8 @@ bloglist =  {
     "http://veryfineredwine.livejournal.com/data/rss": "Dawn Lepard",
     "http://markwalling.org/feed/posts/": "Mark Walling",
     "http://nojesusnopeas.blogspot.com/feeds/posts/default": "James Sweet",
+    "http://blog.hoopycat.com/?tempskin=_rss2": "",
+    "http://feeds2.feedburner.com/codingthewheel": "",
             }
 
 checkevery = 30*60    # check every ~30 minutes
@@ -146,10 +148,10 @@ def iterCachedBlogRoll(db, bloglist):
 def formatOutputRowJavaScript(entry):
     entry['isostamp'] = ''
     if entry['postts'] > 1:
-        entry['isostamp'] = time.strftime("%Y-%m-%dT%H:%M:%S",
+        entry['isostamp'] = time.strftime("%Y-%m-%dT%H:%M:%SZ",
                                           time.gmtime(entry['postts']))
     return """
-        document.write("<li><a href='%(blogurl)s'>%(blogtitle)s</a><br><a href='%(postlink)s'>%(posttitle)s <i><small>");
+        document.write("<li><b><a href='%(blogurl)s'>%(blogtitle)s</a><b><br><a href='%(postlink)s'>%(posttitle)s<br><i><small>");
         document.write(jQuery.timeago("%(isostamp)s"));
         document.write("</small></i></a></li>");""" % entry
 
