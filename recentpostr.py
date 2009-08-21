@@ -151,7 +151,7 @@ def formatOutputRowJavaScript(entry):
         entry['isostamp'] = time.strftime("%Y-%m-%dT%H:%M:%SZ",
                                           time.gmtime(entry['postts']))
     return """
-        document.write("<li><b><a href='%(blogurl)s'>%(blogtitle)s</a><b><br><a href='%(postlink)s'>%(posttitle)s<br><i><small>");
+        document.write("<li><b><a href='%(blogurl)s'>%(blogtitle)s</a></b><br><a href='%(postlink)s'>%(posttitle)s<br><i><small>");
         document.write(jQuery.timeago("%(isostamp)s"));
         document.write("</small></i></a></li>");""" % entry
 
