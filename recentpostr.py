@@ -10,8 +10,8 @@ bloglist =  {
     "http://veryfineredwine.livejournal.com/data/rss": "Dawn Lepard",
     "http://markwalling.org/feed/posts/": "Mark Walling",
     "http://nojesusnopeas.blogspot.com/feeds/posts/default": "James Sweet",
-    "http://blog.hoopycat.com/?tempskin=_rss2": "",
     "http://feeds2.feedburner.com/codingthewheel": "",
+    "http://isc.sans.org/rssfeed.xml": "SANS ISC",
             }
 
 checkevery = 30*60    # check every ~30 minutes
