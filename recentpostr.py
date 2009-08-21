@@ -14,6 +14,7 @@ bloglist =  {
     "http://isc.sans.org/rssfeed.xml": "SANS ISC",
     "http://kovaya.com/miscellany/atom.xml": "Yaakov",
     "http://michael.thegrebs.com/feed/": "Michael Greb",
+    "http://blog.hoopycat.com/?tempskin=_rss2": "Ryan Tucker",
             }
 
 checkevery = 30*60    # check every ~30 minutes
@@ -22,11 +23,20 @@ displaymax = 4
 import feedparser
 import logging
 import operator
+import robotparser
 import sqlite3
 import sys
 import time
+import urllib
 
+# Ser user agent for feedparser
 feedparser.USER_AGENT = 'recentpostr/0.1 +http://blog.hoopycat.com/'
+
+# Set user agent for urllib
+class URLopener(urllib.FancyURLopener):
+    version = feedparser.USER_AGENT
+
+urllib._urlopener = URLopener()
 
 def initDB(filename='/tmp/recentpostr.sqlite3'):
     """Connect to and initialize the cache database.
@@ -49,6 +59,23 @@ def initDB(filename='/tmp/recentpostr.sqlite3'):
 
     return db
 
+def checkRobotOK(url):
+    rp = robotparser.RobotFileParser()
+    robotsfd = urllib.urlopen(getURLBase(url) + '/robots.txt')
+
+    if robotsfd.code != 200:
+        return True
+
+    rp.parse(robotsfd.readlines())
+
+    return rp.can_fetch(feedparser.USER_AGENT, url)
+
+def getURLBase(url):
+    host = urllib.splithost(urllib.splittype(url)[1])[0]
+    method = urllib.splittype(url)[0]
+
+    return method + '://' + host
+
 def updateFeed(feedurl, etag=None, lastmodified=None):
     if type(lastmodified) is int:
         lastmod = time.gmtime(lastmodified)
@@ -58,6 +85,10 @@ def updateFeed(feedurl, etag=None, lastmodified=None):
         lastmod = None
 
     logging.debug('Checking %s ...' % feedurl)
+
+    if not checkRobotOK(feedurl):
+        return None
+
     d = feedparser.parse(feedurl, etag=etag, modified=lastmod)
 
     if d.status is 304:
