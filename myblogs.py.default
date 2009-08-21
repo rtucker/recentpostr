@@ -1,0 +1,8 @@
+# Dictionary listing blogs.
+# "url of rss feed": "title"   (set to "" if you want it to use the feedtitle)
+
+bloglist =  {
+    "http://blog.hoopycat.com/?tempskin=_rss2": "Ryan Tucker",
+    "http://twitter.com/statuses/user_timeline/19397785.rss": "",
+            }
+

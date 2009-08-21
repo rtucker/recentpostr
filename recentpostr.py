@@ -5,23 +5,9 @@
 # Ryan Tucker, August 21 2009, <rtucker@gmail.com>
 
 # TODO:
-# split config into another file
 # push to github
 # "more sane" file output options
 # cache robots.txt result
-
-# dicts:  {"RSS URL": "Title"} ... if "Title" is "", will use what
-# the RSS feed says
-bloglist =  {
-    "http://veryfineredwine.livejournal.com/data/rss": "Dawn Lepard",
-    "http://markwalling.org/feed/posts/": "Mark Walling",
-    "http://nojesusnopeas.blogspot.com/feeds/posts/default": "James Sweet",
-    "http://feeds2.feedburner.com/codingthewheel": "",
-    "http://isc.sans.org/rssfeed.xml": "SANS ISC",
-    "http://kovaya.com/miscellany/atom.xml": "Yaakov",
-    "http://michael.thegrebs.com/feed/": "Michael Greb",
-    "http://blog.hoopycat.com/?tempskin=_rss2": "Ryan Tucker",
-            }
 
 checkevery = 30*60    # check every ~30 minutes
 displaymax = 4
@@ -35,6 +21,9 @@ import sqlite3
 import sys
 import time
 import urllib
+
+# external config file
+from myblogs import bloglist
 
 # Set up logging to syslog
 logging.getLogger('').addHandler(logging.handlers.SysLogHandler('/dev/log'))
