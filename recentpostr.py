@@ -4,6 +4,12 @@
 
 # Ryan Tucker, August 21 2009, <rtucker@gmail.com>
 
+# TODO:
+# split config into another file
+# push to github
+# "more sane" file output options
+# cache robots.txt result
+
 # dicts:  {"RSS URL": "Title"} ... if "Title" is "", will use what
 # the RSS feed says
 bloglist =  {
