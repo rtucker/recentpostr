@@ -144,15 +144,14 @@ def iterCachedBlogRoll(db, bloglist):
                    'posttitle': i[3], 'postlink': i[4], 'postts': i[5]}
 
 def formatOutputRowJavaScript(entry):
-    # entry = {'blogurl': u'http://nojesusnopeas.blogspot.com/', 'postts': 1250861199, 'posttitle': u'You just have to listen for yourself...', 'postlink': u'http://nojesusnopeas.blogspot.com/2009/08/you-just-have-to-listen-for-yourself.html', 'blogtitle': 'James Sweet'}
     entry['isostamp'] = ''
     if entry['postts'] > 1:
         entry['isostamp'] = time.strftime("%Y-%m-%dT%H:%M:%S",
                                           time.gmtime(entry['postts']))
     return """
-        document.write("<li><a href='%(blogurl)s'>%(blogtitle)s</a><br><small><a href='%(postlink)s'>%(posttitle)s<p align=right><i>");
+        document.write("<li><a href='%(blogurl)s'>%(blogtitle)s</a><br><a href='%(postlink)s'>%(posttitle)s <i><small>");
         document.write(jQuery.timeago("%(isostamp)s"));
-        document.write("</i></p></a></small></li>");""" % entry
+        document.write("</small></i></a></li>");""" % entry
 
 def __main__():
     db = initDB()
