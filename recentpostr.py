@@ -63,8 +63,11 @@ def checkRobotOK(url):
     rp = robotparser.RobotFileParser()
     robotsfd = urllib.urlopen(getURLBase(url) + '/robots.txt')
 
-    if robotsfd.code != 200:
-        return True
+    try:
+        if robotsfd.code != 200:
+            return True
+    except AttributeError:
+        pass
 
     rp.parse(robotsfd.readlines())
 
