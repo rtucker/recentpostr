@@ -12,9 +12,12 @@ bloglist =  {
     "http://nojesusnopeas.blogspot.com/feeds/posts/default": "James Sweet",
     "http://feeds2.feedburner.com/codingthewheel": "",
     "http://isc.sans.org/rssfeed.xml": "SANS ISC",
+    "http://kovaya.com/miscellany/atom.xml": "Yaakov",
+    "http://michael.thegrebs.com/feed/": "Michael Greb",
             }
 
 checkevery = 30*60    # check every ~30 minutes
+displaymax = 4
 
 import feedparser
 import logging
@@ -158,8 +161,9 @@ def formatOutputRowJavaScript(entry):
 def __main__():
     db = initDB()
     updateBlogList(db, bloglist)
-    for i in iterCachedBlogRoll(db, bloglist):
-        print formatOutputRowJavaScript(i)
+    element = iterCachedBlogRoll(db, bloglist)
+    for i in range(0,displaymax):
+        print formatOutputRowJavaScript(element.next())
 
 if __name__ == '__main__': __main__()
 
