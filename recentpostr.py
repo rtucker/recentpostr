@@ -142,27 +142,24 @@ def updateBlogList(db, bloglist, checkevery=30*60):
                 blogtitle = feed.feed.title
             else:
                 blogtitle = ''
-            if len(feed.entries) > 0:
-                lasttitle, lastlink, lasttimetuple = fetchMostRecent(feed)
-                if lasttimetuple:
-                    lasttime = int(time.mktime(lasttimetuple))
-                else:
-                    lasttime = -1
-                c.execute("""update blogcache set blogurl=?, blogtitle=?,
-                        lasttitle=?, lastlink=?, lasttime=?, lastcheck=?,
-                        etag=?, lastmodified=? where feedurl=?""",
-                    (blogurl, blogtitle, lasttitle, lastlink, lasttime,
-                    lastcheck, etag, lastmodified, results[0]))
-                db.commit()
-                logging.debug("Updated %s" % results[0])
+            lasttitle, lastlink, lasttimetuple = fetchMostRecent(feed)
+            if lasttimetuple:
+                lasttime = int(time.mktime(lasttimetuple))
             else:
-                c.execute("""update blogcache set
-                            lastcheck=? where feedurl=?""",
-                        (lastcheck, results[0]))
-                db.commit()
-                logging.debug("Empty feed: %s" % results[0])
+                lasttime = -1
+            c.execute("""update blogcache set blogurl=?, blogtitle=?,
+                    lasttitle=?, lastlink=?, lasttime=?, lastcheck=?,
+                    etag=?, lastmodified=? where feedurl=?""",
+                (blogurl, blogtitle, lasttitle, lastlink, lasttime,
+                lastcheck, etag, lastmodified, results[0]))
+            db.commit()
+            logging.debug("Updated %s" % results[0])
         else:
-            logging.debug("Skipped %s" % results[0])
+            c.execute("""update blogcache set
+                        lastcheck=? where feedurl=?""",
+                    (lastcheck, results[0]))
+            db.commit()
+            logging.debug("Empty feed: %s" % results[0])
 
 def iterCachedBlogRoll(db, bloglist):
     c = db.cursor()
