@@ -4,15 +4,18 @@
 
 # Ryan Tucker, August 21 2009, <rtucker@gmail.com>
 
-bloglist = [
-    ("Red Wine's Journal", "http://veryfineredwine.livejournal.com/data/rss"),
-    ("Mark Walling", "http://markwalling.org/feed/posts/"),
-    ("No Jesus, No Peas", "http://nojesusnopeas.blogspot.com/feeds/posts/default"),
-           ]
+# dicts:  {"RSS URL": "Title"} ... if "Title" is "", will use what
+# the RSS feed says
+bloglist =  {
+    "http://veryfineredwine.livejournal.com/data/rss": "Dawn Lepard",
+    "http://markwalling.org/feed/posts/": "Mark Walling",
+    "http://nojesusnopeas.blogspot.com/feeds/posts/default": "James Sweet",
+            }
 
 checkevery = 30*60    # check every ~30 minutes
 
 import feedparser
+import logging
 import operator
 import sqlite3
 import sys
@@ -34,8 +37,9 @@ def initDB(filename='/tmp/recentpostr.sqlite3'):
     if columns == []:
         # need to create table
         c.execute("""create table blogcache
-            (url text, lasttitle text, lastlink text, lasttime integer,
-             lastcheck integer, etag text, lastmodified integer)""")
+            (feedurl text, blogurl text, blogtitle text, lasttitle text,
+             lastlink text, lasttime integer, lastcheck integer, etag text,
+             lastmodified integer)""")
         db.commit()
 
     return db
@@ -48,7 +52,7 @@ def updateFeed(feedurl, etag=None, lastmodified=None):
     else:
         lastmod = None
 
-    sys.stdout.write('<!-- Checking %s ... -->\n' % feedurl)
+    logging.debug('Checking %s ...' % feedurl)
     d = feedparser.parse(feedurl, etag=etag, modified=lastmod)
 
     if d.status is 304:
@@ -73,14 +77,14 @@ def fetchMostRecent(d):
 
 def updateBlogList(db, bloglist, checkevery=30*60):
     c = db.cursor()
-    c.execute("select url from blogcache")
+    c.execute("select feedurl from blogcache")
     allrows = c.fetchall()
     for i in bloglist:
-        if (i[1],) not in allrows:
-            c.execute("insert into blogcache values(?,'','',1,1,'',1)", (i[1],))
+        if (i, ) not in allrows:
+            c.execute("insert into blogcache values(?,'','','','',1,1,'',1)", (i,))
 
     lastcheckthreshold = int(time.time()-checkevery)
-    c.execute("select url,etag,lasttime from blogcache where lastcheck < ?", (lastcheckthreshold, ))
+    c.execute("select feedurl,etag,lasttime from blogcache where lastcheck < ?", (lastcheckthreshold, ))
     rows = c.fetchall()
     for results in rows:
         feed = updateFeed(results[0], results[1], results[2])
@@ -94,35 +98,56 @@ def updateBlogList(db, bloglist, checkevery=30*60):
                 lastmodified = int(time.mktime(feed.modified))
             else:
                 lastmodified = 1
+            if 'link' in feed.feed:
+                blogurl = feed.feed.link
+            else:
+                blogurl = feedurl
+            if 'title' in feed.feed:
+                blogtitle = feed.feed.title
+            else:
+                blogtitle = ''
             if len(feed.entries) > 0:
                 lasttitle, lastlink, lasttimetuple = fetchMostRecent(feed)
                 if lasttimetuple:
                     lasttime = int(time.mktime(lasttimetuple))
                 else:
                     lasttime = -1
-                c.execute("""update blogcache set
-                        lasttitle=?, lastlink=?, lasttime=?,
-                        lastcheck=?, etag=?, lastmodified=?
-                        where url=?""",
-                    (lasttitle, lastlink, lasttime, lastcheck,
-                     etag, lastmodified, results[0]))
+                c.execute("""update blogcache set blogurl=?, blogtitle=?,
+                        lasttitle=?, lastlink=?, lasttime=?, lastcheck=?,
+                        etag=?, lastmodified=? where feedurl=?""",
+                    (blogurl, blogtitle, lasttitle, lastlink, lasttime,
+                    lastcheck, etag, lastmodified, results[0]))
                 db.commit()
-                sys.stdout.write("<!-- updated %s -->\n" % results[0])
+                logging.debug("Updated %s" % results[0])
             else:
                 c.execute("""update blogcache set
-                            lastcheck=? where url=?""",
+                            lastcheck=? where feedurl=?""",
                         (lastcheck, results[0]))
                 db.commit()
-                sys.stdout.write("<!-- empty feed: %s -->\n" % results[0])
+                logging.debug("Empty feed: %s" % results[0])
         else:
-            sys.stdout.write("<!-- skipped %s -->\n" % results[0])
+            logging.debug("Skipped %s" % results[0])
 
-
+def iterCachedBlogRoll(db, bloglist):
+    c = db.cursor()
+    c.execute("""select feedurl,blogurl,blogtitle,lasttitle,lastlink,lasttime
+                 from blogcache
+                 order by lasttime desc""")
+    rows = c.fetchall()
+    for i in rows:
+        if i[0] in bloglist:
+            if bloglist[i[0]]:
+                blogtitle = bloglist[i[0]]
+            else:
+                blogtitle = i[2]
+            yield {'blogurl': i[1], 'blogtitle': blogtitle,
+                   'posttitle': i[3], 'postlink': i[4], 'postts': i[5]}
 
 def __main__():
     db = initDB()
     updateBlogList(db, bloglist)
-    print 'done'
+    for i in iterCachedBlogRoll(db, bloglist):
+        print `i`
 
 if __name__ == '__main__': __main__()
 
