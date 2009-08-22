@@ -208,11 +208,9 @@ def processOutput(type='javascript'):
     return output
 
 def wsgiInterface(environ, start_response):
-    #global cachedout
-    #global cachedgen
-    #global cachedttl
+    global cachedout, cachedgen, cachedttl
     start_response('200 OK', [('Content-Type', 'text/javascript')])
-    if (not cachedout) or (cachedgen + cachedttl > time.time()):
+    if cachedout == [] or (cachedgen + cachedttl < time.time()):
         logging.debug('Regenerating cache (age: %i)' % (time.time() - cachedgen))
         cachedout = processOutput().split('\n')
         cachedgen = time.time()
