@@ -38,7 +38,7 @@ class URLopener(urllib.FancyURLopener):
 
 urllib._urlopener = URLopener()
 
-cachedout = ''
+cachedout = []
 cachedttl = 314
 cachedgen = 0
 
@@ -208,9 +208,9 @@ def processOutput(type='javascript'):
     return output
 
 def wsgiInterface(environ, start_response):
-    global cachedout
-    global cachedgen
-    global cachedttl
+    #global cachedout
+    #global cachedgen
+    #global cachedttl
     start_response('200 OK', [('Content-Type', 'text/javascript')])
     if (not cachedout) or (cachedgen + cachedttl > time.time()):
         logging.debug('Regenerating cache (age: %i)' % (time.time() - cachedgen))
