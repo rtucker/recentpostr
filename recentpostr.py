@@ -193,13 +193,23 @@ def formatOutputRowJavaScript(entry):
         document.write(jQuery.timeago("%(isostamp)s"));
         document.write("</small></i></a></li>");""" % entry
 
-def __main__():
+def processOutput(type='javascript'):
     db = initDB()
     logging.debug('Updating blog list...')
     updateBlogList(db, bloglist)
     element = iterCachedBlogRoll(db, bloglist)
+    output = ''
     for i in range(0,displaymax):
-        print formatOutputRowJavaScript(element.next())
+        if type == 'javascript':
+            output += str(formatOutputRowJavaScript(element.next()))
+    return output
+
+def wsgiInterface(environ, start_response):
+    start_response('200 OK', [('Content-Type', 'text/javascript')])
+    return processOutput().split('\n')
+
+def __main__():
+    print processOutput()
 
 if __name__ == '__main__': __main__()
 
