@@ -22,20 +22,19 @@ import sqlite3
 import sys
 import time
 import timelimited
-import urllib
+import urllib2
 
 # Set up logging to syslog
-logging.getLogger('').addHandler(logging.handlers.SysLogHandler('/dev/log'))
-logging.getLogger('').setLevel(logging.DEBUG)
+logger = logging.getLogger('')
+loghandler = logging.handlers.SysLogHandler('/dev/log',
+                facility=logging.handlers.SysLogHandler.LOG_DAEMON)
+logformatter = logging.Formatter('%(filename)s: %(levelname)s: %(message)s')
+loghandler.setFormatter(logformatter)
+logger.addHandler(loghandler)
+logger.setLevel(logging.DEBUG)
 
 # Set user agent for feedparser
 feedparser.USER_AGENT = 'recentpostr/0.1 +http://blog.hoopycat.com/'
-
-# Set user agent for urllib
-class URLopener(urllib.FancyURLopener):
-    version = feedparser.USER_AGENT
-
-urllib._urlopener = URLopener()
 
 cachedout = []
 cachedttl = 314
@@ -80,7 +79,10 @@ def checkRobotOK(url):
     rp = robotparser.RobotFileParser()
 
     try:
-        robotsfd = urllib.urlopen(getURLBase(url) + '/robots.txt')
+        logging.debug('Checking robot OK for %s' % url)
+        request = urllib2.Request(getURLBase(url) + '/robots.txt',
+                                  None, {'User-Agent': feedparser.USER_AGENT})
+        robotsfd = urllib2.urlopen(request)
         if robotsfd.code != 200:
             logging.debug('robots.txt not found for %s, assuming OK' % url)
             return True
@@ -97,8 +99,8 @@ def checkRobotOK(url):
     return result
 
 def getURLBase(url):
-    host = urllib.splithost(urllib.splittype(url)[1])[0]
-    method = urllib.splittype(url)[0]
+    host = urllib2.splithost(urllib2.splittype(url)[1])[0]
+    method = urllib2.splittype(url)[0]
 
     return method + '://' + host
 
@@ -138,7 +140,6 @@ def fetchMostRecent(d):
     return (mostrecent.title, mostrecent.link, mostrecent.updated_parsed)
 
 def updateBlogList(db, blogiter, checkevery=30*60):
-    starttime = time.time()
     c = db.cursor()
     c.execute("select feedurl from blogcache")
     allrows = c.fetchall()
@@ -154,16 +155,18 @@ def updateBlogList(db, blogiter, checkevery=30*60):
     lastcheckthreshold = int(time.time()-checkevery)
     c.execute("select feedurl,etag,lasttime from blogcache where lastcheck < ? order by lastcheck", (lastcheckthreshold, ))
     rows = c.fetchall()
+    starttime = time.time()
     for results in rows:
         if time.time()-starttime > 3:
             logging.info('updateBlogList timeout reached')
+            break
         updateFeed_timed = timelimited.TimeLimited(updateFeed,
-                            min(time.time()-starttime, 1))
+                            max(time.time()-starttime, 1))
         try:
+            feed = None
             feed = updateFeed_timed(results[0], results[1], results[2])
         except timelimited.TimeLimitExpired:
             logging.info('updateFeed timeout reached')
-            break
         lastcheck = int(time.time())
         if feed:
             if 'etag' in feed:
