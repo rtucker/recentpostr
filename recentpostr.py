@@ -151,7 +151,7 @@ def updateBlogList(db, blogiter, checkevery=30*60):
             c.execute("insert into blogcache values(?,'','','','',1,1,'',1)", (key,))
 
     lastcheckthreshold = int(time.time()-checkevery)
-    c.execute("select feedurl,etag,lasttime from blogcache where lastcheck < ?", (lastcheckthreshold, ))
+    c.execute("select feedurl,etag,lasttime from blogcache where lastcheck < ? order by lastcheck", (lastcheckthreshold, ))
     rows = c.fetchall()
     for results in rows:
         feed = updateFeed(results[0], results[1], results[2])
