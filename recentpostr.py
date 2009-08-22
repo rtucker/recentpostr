@@ -18,10 +18,10 @@ import logging
 import logging.handlers
 import operator
 import robotparser
-import signal
 import sqlite3
 import sys
 import time
+import timelimited
 import urllib
 
 # Set up logging to syslog
@@ -138,6 +138,7 @@ def fetchMostRecent(d):
     return (mostrecent.title, mostrecent.link, mostrecent.updated_parsed)
 
 def updateBlogList(db, blogiter, checkevery=30*60):
+    starttime = time.time()
     c = db.cursor()
     c.execute("select feedurl from blogcache")
     allrows = c.fetchall()
@@ -154,7 +155,15 @@ def updateBlogList(db, blogiter, checkevery=30*60):
     c.execute("select feedurl,etag,lasttime from blogcache where lastcheck < ? order by lastcheck", (lastcheckthreshold, ))
     rows = c.fetchall()
     for results in rows:
-        feed = updateFeed(results[0], results[1], results[2])
+        if time.time()-starttime > 3:
+            logging.info('updateBlogList timeout reached')
+        updateFeed_timed = timelimited.TimeLimited(updateFeed,
+                            min(time.time()-starttime, 1))
+        try:
+            feed = updateFeed_timed(results[0], results[1], results[2])
+        except timelimited.TimeLimitExpired:
+            logging.info('updateFeed timeout reached')
+            break
         lastcheck = int(time.time())
         if feed:
             if 'etag' in feed:
@@ -221,40 +230,13 @@ def formatOutputRowJavaScript(entry):
 def processOutput(type='javascript'):
     db = initDB()
     blogiter = iterFeedList()
-    timeoutUpdateBlogList = TimeoutFunction(updateBlogList, 3)
-    try:
-        blogdict = timeoutUpdateBlogList(db, blogiter)
-    except TimeoutFunctionException:
-        logging.info("Timed out on updateBlogList")
+    blogdict = updateBlogList(db, blogiter)
     element = iterCachedBlogRoll(db, blogdict)
     output = ''
     for i in range(0,displaymax):
         if type == 'javascript':
             output += str(formatOutputRowJavaScript(element.next()))
     return output
-
-# timeout code from http://nick.vargish.org/clues/python-tricks.html
-class TimeoutFunctionException(Exception): 
-    """Exception to raise on a timeout""" 
-    pass 
-
-class TimeoutFunction: 
-    def __init__(self, function, timeout): 
-        self.timeout = timeout 
-        self.function = function 
-
-    def handle_timeout(self, signum, frame): 
-        raise TimeoutFunctionException()
-
-    def __call__(self, *args): 
-        old = signal.signal(signal.SIGALRM, self.handle_timeout) 
-        signal.alarm(self.timeout) 
-        try: 
-            result = self.function(*args)
-        finally: 
-            signal.signal(signal.SIGALRM, old)
-        signal.alarm(0)
-        return result 
 
 def wsgiInterface(environ, start_response):
     global cachedout, cachedgen, cachedttl
