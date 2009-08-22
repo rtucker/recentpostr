@@ -195,7 +195,6 @@ def formatOutputRowJavaScript(entry):
 
 def processOutput(type='javascript'):
     db = initDB()
-    logging.debug('Updating blog list...')
     updateBlogList(db, bloglist)
     element = iterCachedBlogRoll(db, bloglist)
     output = ''
