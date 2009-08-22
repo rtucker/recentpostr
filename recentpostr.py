@@ -38,6 +38,10 @@ class URLopener(urllib.FancyURLopener):
 
 urllib._urlopener = URLopener()
 
+cachedout = ''
+cachedttl = 314
+cachedgen = 0
+
 def initDB(filename='/tmp/recentpostr.sqlite3'):
     """Connect to and initialize the cache database.
 
@@ -166,7 +170,7 @@ def updateBlogList(db, bloglist, checkevery=30*60):
                         lastcheck=? where feedurl=?""",
                     (lastcheck, results[0]))
             db.commit()
-            logging.debug("Empty feed: %s" % results[0])
+            logging.debug("No new data on feed: %s" % results[0])
 
 def iterCachedBlogRoll(db, bloglist):
     c = db.cursor()
@@ -205,7 +209,14 @@ def processOutput(type='javascript'):
 
 def wsgiInterface(environ, start_response):
     start_response('200 OK', [('Content-Type', 'text/javascript')])
-    return processOutput().split('\n')
+    if not (cachedout and (cachedgen + cachedttl > time.time())):
+        logging.debug('Regenerating cache (age: %i)' % (time.time() - cachedgen))
+        cachedout = processOutput().split('\n')
+        cachedgen = time.time()
+    else:
+        logging.debug('Outputting cache (age: %i)' % (time.time() - cachedgen))
+
+    return cachedout
 
 def __main__():
     print processOutput()
