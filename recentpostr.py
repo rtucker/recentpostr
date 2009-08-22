@@ -6,6 +6,7 @@
 
 # TODO:
 # push to github
+# limit the number of fetches per load (e.g. don't block for >2 seconds)
 # "more sane" file output options
 # cache robots.txt result
 
@@ -21,9 +22,6 @@ import sqlite3
 import sys
 import time
 import urllib
-
-# external config file
-from myblogs import bloglist
 
 # Set up logging to syslog
 logging.getLogger('').addHandler(logging.handlers.SysLogHandler('/dev/log'))
@@ -63,16 +61,33 @@ def initDB(filename='/tmp/recentpostr.sqlite3'):
 
     return db
 
+def iterFeedList(filename='feedlist.txt'):
+    fd = open(filename, 'r')
+    for i in fd.readlines():
+        if i.startswith("#"):
+            pass
+        elif i.strip() == '':
+            pass
+        else:
+            splitted = i.strip().split('|')
+            if len(splitted) == 1:
+                yield {splitted[0]: ''}
+            elif len(splitted) == 2:
+                yield {splitted[0]: splitted[1]}
+
 def checkRobotOK(url):
     rp = robotparser.RobotFileParser()
-    robotsfd = urllib.urlopen(getURLBase(url) + '/robots.txt')
 
     try:
+        robotsfd = urllib.urlopen(getURLBase(url) + '/robots.txt')
         if robotsfd.code != 200:
             logging.debug('robots.txt not found for %s, assuming OK' % url)
             return True
     except AttributeError:
         pass
+    except IOError:
+        logging.debug('Received IO Error opening robots.txt for %s' % url)
+        return False
 
     rp.parse(robotsfd.readlines())
 
@@ -121,14 +136,18 @@ def fetchMostRecent(d):
         mostrecent['updated_parsed'] = None
     return (mostrecent.title, mostrecent.link, mostrecent.updated_parsed)
 
-def updateBlogList(db, bloglist, checkevery=30*60):
+def updateBlogList(db, blogiter, checkevery=30*60):
     c = db.cursor()
     c.execute("select feedurl from blogcache")
     allrows = c.fetchall()
-    for i in bloglist:
-        if (i, ) not in allrows:
-            logging.debug('New blog found: %s' % i)
-            c.execute("insert into blogcache values(?,'','','','',1,1,'',1)", (i,))
+    blogdict = {}
+    for i in blogiter:
+        key = i.keys()[0]
+        value = i[key]
+        blogdict[key] = value
+        if (key, ) not in allrows:
+            logging.debug('New blog found: %s' % key)
+            c.execute("insert into blogcache values(?,'','','','',1,1,'',1)", (key,))
 
     lastcheckthreshold = int(time.time()-checkevery)
     c.execute("select feedurl,etag,lasttime from blogcache where lastcheck < ?", (lastcheckthreshold, ))
@@ -171,17 +190,18 @@ def updateBlogList(db, bloglist, checkevery=30*60):
                     (lastcheck, results[0]))
             db.commit()
             logging.debug("No new data on feed: %s" % results[0])
+    return blogdict
 
-def iterCachedBlogRoll(db, bloglist):
+def iterCachedBlogRoll(db, blogdict):
     c = db.cursor()
     c.execute("""select feedurl,blogurl,blogtitle,lasttitle,lastlink,lasttime
                  from blogcache
                  order by lasttime desc""")
     rows = c.fetchall()
     for i in rows:
-        if i[0] in bloglist:
-            if bloglist[i[0]]:
-                blogtitle = bloglist[i[0]]
+        if i[0] in blogdict:
+            if blogdict[i[0]]:
+                blogtitle = blogdict[i[0]]
             else:
                 blogtitle = i[2]
             yield {'blogurl': i[1], 'blogtitle': blogtitle,
@@ -199,8 +219,9 @@ def formatOutputRowJavaScript(entry):
 
 def processOutput(type='javascript'):
     db = initDB()
-    updateBlogList(db, bloglist)
-    element = iterCachedBlogRoll(db, bloglist)
+    blogiter = iterFeedList()
+    blogdict = updateBlogList(db, blogiter)
+    element = iterCachedBlogRoll(db, blogdict)
     output = ''
     for i in range(0,displaymax):
         if type == 'javascript':
@@ -218,6 +239,8 @@ def wsgiInterface(environ, start_response):
         logging.debug('Outputting cache (age: %i)' % (time.time() - cachedgen))
 
     return cachedout
+
+    logging.debug("I'm still running after returning a value... niiice")
 
 def __main__():
     print processOutput()
