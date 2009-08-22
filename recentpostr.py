@@ -18,6 +18,7 @@ import logging
 import logging.handlers
 import operator
 import robotparser
+import signal
 import sqlite3
 import sys
 import time
@@ -220,13 +221,40 @@ def formatOutputRowJavaScript(entry):
 def processOutput(type='javascript'):
     db = initDB()
     blogiter = iterFeedList()
-    blogdict = updateBlogList(db, blogiter)
+    timeoutUpdateBlogList = TimeoutFunction(updateBlogList, 3)
+    try:
+        blogdict = timeoutUpdateBlogList(db, blogiter)
+    except TimeoutFunctionException:
+        logging.info("Timed out on updateBlogList")
     element = iterCachedBlogRoll(db, blogdict)
     output = ''
     for i in range(0,displaymax):
         if type == 'javascript':
             output += str(formatOutputRowJavaScript(element.next()))
     return output
+
+# timeout code from http://nick.vargish.org/clues/python-tricks.html
+class TimeoutFunctionException(Exception): 
+    """Exception to raise on a timeout""" 
+    pass 
+
+class TimeoutFunction: 
+    def __init__(self, function, timeout): 
+        self.timeout = timeout 
+        self.function = function 
+
+    def handle_timeout(self, signum, frame): 
+        raise TimeoutFunctionException()
+
+    def __call__(self, *args): 
+        old = signal.signal(signal.SIGALRM, self.handle_timeout) 
+        signal.alarm(self.timeout) 
+        try: 
+            result = self.function(*args)
+        finally: 
+            signal.signal(signal.SIGALRM, old)
+        signal.alarm(0)
+        return result 
 
 def wsgiInterface(environ, start_response):
     global cachedout, cachedgen, cachedttl
