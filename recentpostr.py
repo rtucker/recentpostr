@@ -105,6 +105,8 @@ def getURLBase(url):
     return method + '://' + host
 
 def updateFeed(feedurl, etag=None, lastmodified=None):
+    if etag in ['None', '']:
+        etag = None
     if type(lastmodified) is int:
         lastmod = time.gmtime(lastmodified)
     elif type(lastmodified) in [tuple, time.struct_time]:
