@@ -158,11 +158,11 @@ def updateBlogList(db, blogiter, checkevery=30*60):
     starttime = time.time()
     deadtime = time.time()+3
     for results in rows:
-        if deadtime-starttime < 0:
+        if deadtime-time.time() < 0:
             logging.info('updateBlogList timeout reached')
             break
         updateFeed_timed = timelimited.TimeLimited(updateFeed,
-            max(deadtime-starttime, 1))
+            max(deadtime-time.time(), 1))
         try:
             feed = None
             feed = updateFeed_timed(results[0], results[1], results[2])
