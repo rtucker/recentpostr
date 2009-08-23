@@ -5,8 +5,6 @@
 # Ryan Tucker, August 21 2009, <rtucker@gmail.com>
 
 # TODO:
-# push to github
-# limit the number of fetches per load (e.g. don't block for >2 seconds)
 # "more sane" file output options
 # cache robots.txt result
 
