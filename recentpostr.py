@@ -156,11 +156,13 @@ def updateBlogList(db, blogiter, checkevery=30*60):
     c.execute("select feedurl,etag,lasttime from blogcache where lastcheck < ? order by lastcheck", (lastcheckthreshold, ))
     rows = c.fetchall()
     starttime = time.time()
+    deadtime = time.time()+3
     for results in rows:
-        if time.time()-starttime > 3:
+        if deadtime-starttime < 0:
             logging.info('updateBlogList timeout reached')
             break
-        updateFeed_timed = timelimited.TimeLimited(updateFeed, 3)
+        updateFeed_timed = timelimited.TimeLimited(updateFeed,
+            max(deadtime-starttime, 1))
         try:
             feed = None
             feed = updateFeed_timed(results[0], results[1], results[2])
