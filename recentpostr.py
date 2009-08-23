@@ -11,6 +11,7 @@
 checkevery = 30*60    # check every ~30 minutes
 displaymax = 4
 
+import cgi
 import feedparser
 import logging
 import logging.handlers
@@ -218,8 +219,11 @@ def iterCachedBlogRoll(db, blogdict):
                 blogtitle = blogdict[i[0]]
             else:
                 blogtitle = i[2]
-            yield {'blogurl': i[1], 'blogtitle': blogtitle,
-                   'posttitle': i[3], 'postlink': i[4], 'postts': i[5]}
+            yield {'blogurl': cgi.escape(i[1], quote=True),
+                   'blogtitle': cgi.escape(blogtitle, quote=True),
+                   'posttitle': cgi.escape(i[3], quote=True),
+                   'postlink': cgi.escape(i[4], quote=True),
+                   'postts': i[5]}
 
 def formatOutputRowJavaScript(entry):
     entry['isostamp'] = ''
