@@ -6,10 +6,10 @@ function recentpostr(blogroll) {
         } else {
             var timeago = "";
         }
-        var bloglink = '<span><b><a href="' + blogroll[i].blogurl + '">' + blogroll[i].blogtitle + '</a></b></span>';
+        var bloglink = '<span><b><a style="color: #000;" href="' + blogroll[i].blogurl + '">' + blogroll[i].blogtitle + '</a></b></span>';
         var blogpost = '<span><a href="' + blogroll[i].posturl + '">' + blogroll[i].posttitle + timeago + '</a></span>';
 
-        var outline = '<li>' + bloglink + blogpost + '</li>';
+        var outline = '<li>' + bloglink + '<br>' + blogpost + '</li>';
 
         outputHTML.push(outline);
     }
