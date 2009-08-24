@@ -2,7 +2,7 @@ function recentpostr(blogroll) {
     var outputHTML = [];
     for (var i=0; i<blogroll.length; i++){
         if (blogroll[i].isostamp != "") {
-            var timeago = '<br><p style="text-align:right;color:#888;font-size:85%;">' + jQuery.timeago(blogroll[i].isostamp) + '</p>';
+            var timeago = '<span style="color:#888;font-size:85%;">' + jQuery.timeago(blogroll[i].isostamp) + '</span>';
         } else {
             var timeago = "";
         }
