@@ -9,7 +9,7 @@
 # cache robots.txt result
 
 checkevery = 30*60    # check every ~30 minutes
-displaymax = 4
+displaymax = 5
 
 import cgi
 import feedparser
@@ -244,7 +244,7 @@ def formatOutputBlobJSON(entryiter,max):
     outlist = []
     counter = 0
     for i in entryiter:
-        if counter > max:
+        if counter >= max:
             break
         if i['postts'] > 1:
             i['isostamp'] = time.strftime("%Y-%m-%dT%H:%M:%SZ",
