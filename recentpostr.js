@@ -7,7 +7,7 @@ function recentpostr(blogroll) {
             var timeago = "";
         }
         var bloglink = '<span><b><a style="color: #000;" href="' + blogroll[i].blogurl + '">' + blogroll[i].blogtitle + '</a></b></span>';
-        var blogpost = '<span><a href="' + blogroll[i].posturl + '">' + blogroll[i].posttitle + timeago + '</a></span>';
+        var blogpost = '<span><a href="' + blogroll[i].postlink + '">' + blogroll[i].posttitle + '</a></span>' + timeago;
 
         var outline = '<li>' + bloglink + '<br>' + blogpost + '</li>';
 
