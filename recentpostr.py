@@ -23,6 +23,11 @@ import time
 import timelimited
 import urllib2
 
+try:
+  import json
+except:
+  import simplejson as json
+
 # Set up logging to syslog
 logger = logging.getLogger('')
 loghandler = logging.handlers.SysLogHandler('/dev/log',
@@ -235,30 +240,51 @@ def formatOutputRowJavaScript(entry):
         document.write(jQuery.timeago("%(isostamp)s"));
         document.write("</small></i></a></li>");""" % entry
 
-def processOutput(type='javascript'):
+def formatOutputBlobJSON(entryiter,max):
+    outlist = []
+    counter = 0
+    for i in entryiter:
+        if counter > max:
+            break
+        if i['postts'] > 1:
+            i['isostamp'] = time.strftime("%Y-%m-%dT%H:%M:%SZ",
+                                           time.gmtime(i['postts']))
+        else:
+            i['isostamp'] = ''
+        outlist.append(i)
+        counter += 1
+    return json.dumps(outlist)
+
+def processOutput(type='javascript',callback=None):
     db = initDB()
     blogiter = iterFeedList()
     blogdict = updateBlogList(db, blogiter)
     element = iterCachedBlogRoll(db, blogdict)
     output = ''
-    for i in range(0,displaymax):
-        if type == 'javascript':
+    if type == 'javascript':
+        for i in range(0, displaymax):
             output += str(formatOutputRowJavaScript(element.next()))
+    if type == 'json':
+        if callback:
+            output += '%(callback)s(%(json)s)' % ({
+                'callback': callback,
+                'json': formatOutputBlobJSON(element, displaymax)})
+        else:
+            output += formatOutputBlobJSON(element, displaymax)
     return output
 
 def wsgiInterface(environ, start_response):
     global cachedout, cachedgen, cachedttl
-    start_response('200 OK', [('Content-Type', 'text/javascript')])
+    start_response('200 OK', [('Content-Type', 'application/javascript')])
     if cachedout == [] or (cachedgen + cachedttl < time.time()):
         logging.debug('Regenerating cache (age: %i)' % (time.time() - cachedgen))
-        cachedout = processOutput().split('\n')
+        cachedout = processOutput(type='json',
+                                  callback='recentpostr').split('\n')
         cachedgen = time.time()
     else:
         logging.debug('Outputting cache (age: %i)' % (time.time() - cachedgen))
 
     return cachedout
-
-    logging.debug("I'm still running after returning a value... niiice")
 
 def __main__():
     print processOutput()
