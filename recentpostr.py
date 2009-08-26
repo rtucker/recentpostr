@@ -60,7 +60,7 @@ def initDB(filename='/tmp/recentpostr.sqlite3'):
         c.execute("""create table blogcache
             (feedurl text, blogurl text, blogtitle text, lasttitle text,
              lastlink text, lasttime integer, lastcheck integer, etag text,
-             lastmodified integer)""")
+             lastmodified integer, robotok boolean, robotcheck integer)""")
         db.commit()
 
     return db
@@ -120,9 +120,6 @@ def updateFeed(feedurl, etag=None, lastmodified=None):
 
     logging.debug('Checking %s ...' % feedurl)
 
-    if not checkRobotOK(feedurl):
-        return None
-
     d = feedparser.parse(feedurl, etag=etag, modified=lastmod)
 
     if d.status is 304:
@@ -156,10 +153,10 @@ def updateBlogList(db, blogiter, checkevery=30*60):
         blogdict[key] = value
         if (key, ) not in allrows:
             logging.debug('New blog found: %s' % key)
-            c.execute("insert into blogcache values(?,'','','','',1,1,'',1)", (key,))
+            c.execute("insert into blogcache values(?,'','','','',1,1,'',1,0,1)", (key,))
 
     lastcheckthreshold = int(time.time()-checkevery)
-    c.execute("select feedurl,etag,lasttime from blogcache where lastcheck < ? order by lastcheck", (lastcheckthreshold, ))
+    c.execute("select feedurl,etag,lasttime,robotok,robotcheck from blogcache where lastcheck < ? order by lastcheck", (lastcheckthreshold, ))
     rows = c.fetchall()
     starttime = time.time()
     deadtime = time.time()+3
@@ -171,7 +168,20 @@ def updateBlogList(db, blogiter, checkevery=30*60):
             max(deadtime-time.time(), 1))
         try:
             feed = None
-            feed = updateFeed_timed(results[0], results[1], results[2])
+            if results[4] < time.time()-86400:
+                logging.debug('robot check expired for %s: %i' % (
+                              results[0], time.time()-results[4]))
+                robotok = checkRobotOK(results[0])
+                c.execute("update blogcache set robotok=?,robotcheck=?"+
+                          "where feedurl=?", (int(robotok),time.time(),
+                           results[0]))
+            else:
+                robotok = bool(results[3])
+            if robotok:
+                feed = updateFeed_timed(results[0], results[1], results[2])
+            else:
+                logging.info('robots.txt for %s prohibits us' % results[0])
+                feed = None
         except timelimited.TimeLimitExpired:
             logging.info('updateFeed timeout reached')
         lastcheck = int(time.time())
