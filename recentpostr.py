@@ -41,7 +41,7 @@ logger.setLevel(logging.DEBUG)
 feedparser.USER_AGENT = 'recentpostr/0.1 +http://blog.hoopycat.com/'
 
 cachedout = []
-cachedttl = 314
+cachedttl = 62
 cachedgen = 0
 
 def initDB(filename='/tmp/recentpostr.sqlite3'):
@@ -161,6 +161,8 @@ def updateBlogList(db, blogiter, checkevery=30*60):
     starttime = time.time()
     deadtime = time.time()+3
     for results in rows:
+        if results[0] not in blogdict.keys():
+            logging.debug('skipping old blog: %s' % (results[0]))
         if deadtime-time.time() < 0:
             logging.info('updateBlogList timeout reached')
             break
