@@ -163,6 +163,7 @@ def updateBlogList(db, blogiter, checkevery=30*60):
     for results in rows:
         if results[0] not in blogdict.keys():
             logging.debug('skipping old blog: %s' % (results[0]))
+            continue
         if deadtime-time.time() < 0:
             logging.info('updateBlogList timeout reached')
             break
