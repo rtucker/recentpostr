@@ -145,14 +145,14 @@ def updateBlogList(db, blogiter, checkevery=30*60):
     c.execute("select feedurl from blogcache")
     allrows = c.fetchall()
     blogdict = {}
+    flagsdict = {}
     for i in blogiter:
         key = i.keys()[0]
         if type(i[key]) == type(()):
             value = i[key][0]
-            flags = i[key][1].split(',')
+            flagsdict[key] = i[key][1].split(',')
         else:
             value = i[key]
-            flags = []
         blogdict[key] = value
         if (key, ) not in allrows:
             logging.debug('New blog found: %s' % key)
@@ -164,6 +164,10 @@ def updateBlogList(db, blogiter, checkevery=30*60):
     starttime = time.time()
     deadtime = time.time()+3
     for results in rows:
+        if results[0] in flagsdict.keys():
+            flags = flagsdict[results[0]]
+        else:
+            flags = []
         if results[0] not in blogdict.keys():
             logging.debug('skipping old blog: %s' % (results[0]))
             continue
