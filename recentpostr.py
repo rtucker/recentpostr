@@ -282,7 +282,10 @@ def processOutput(type='javascript',callback=None):
     output = ''
     if type == 'javascript':
         for i in range(0, displaymax):
-            output += unicode(formatOutputRowJavaScript(element.next()))
+            try:
+                output += unicode(formatOutputRowJavaScript(element.next()))
+            except StopIteration:
+                pass
     if type == 'json':
         if callback:
             output += '%(callback)s(%(json)s)' % ({
