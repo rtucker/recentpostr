@@ -4,10 +4,6 @@
 
 # Ryan Tucker, August 21 2009, <rtucker@gmail.com>
 
-# TODO:
-# "more sane" file output options
-# cache robots.txt result
-
 checkevery = 30*60    # check every ~30 minutes
 displaymax = 5
 
@@ -78,6 +74,8 @@ def iterFeedList(filename='feedlist.txt'):
                 yield {splitted[0]: ''}
             elif len(splitted) == 2:
                 yield {splitted[0]: splitted[1]}
+            elif len(splitted) == 3:
+                yield {splitted[0]: (splitted[1], splitted[2])}
 
 def checkRobotOK(url):
     rp = robotparser.RobotFileParser()
@@ -149,7 +147,12 @@ def updateBlogList(db, blogiter, checkevery=30*60):
     blogdict = {}
     for i in blogiter:
         key = i.keys()[0]
-        value = i[key]
+        if type(i[key]) == type(()):
+            value = i[key][0]
+            flags = i[key][1].split(',')
+        else:
+            value = i[key]
+            flags = []
         blogdict[key] = value
         if (key, ) not in allrows:
             logging.debug('New blog found: %s' % key)
@@ -171,7 +174,10 @@ def updateBlogList(db, blogiter, checkevery=30*60):
             max(deadtime-time.time(), 1))
         try:
             feed = None
-            if results[4] < time.time()-86400:
+            if 'norobot' in flags:
+                logging.debug('overriding robot check due to norobot flag')
+                robotok = True
+            elif results[4] < time.time()-86400:
                 logging.debug('robot check expired for %s: %i' % (
                               results[0], time.time()-results[4]))
                 robotok = checkRobotOK(results[0])
