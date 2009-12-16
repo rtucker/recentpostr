@@ -37,7 +37,7 @@ logger.setLevel(logging.DEBUG)
 feedparser.USER_AGENT = 'recentpostr/0.1 +http://blog.hoopycat.com/'
 
 cachedout = []
-cachedttl = 62
+cachedttl = 600
 cachedgen = 0
 
 def initDB(filename='/tmp/recentpostr.sqlite3'):
@@ -140,7 +140,7 @@ def fetchMostRecent(d):
         mostrecent['updated_parsed'] = None
     return (mostrecent.title, mostrecent.link, mostrecent.updated_parsed)
 
-def updateBlogList(db, blogiter, checkevery=30*60):
+def updateBlogList(db, blogiter, checkevery=2*60*60):
     c = db.cursor()
     c.execute("select feedurl from blogcache")
     allrows = c.fetchall()
